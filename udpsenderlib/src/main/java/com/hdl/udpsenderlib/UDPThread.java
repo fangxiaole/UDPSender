@@ -213,34 +213,37 @@ class UDPThread extends Thread {
                 if (receiveTimeOut < currentReciveTime - lastReciveTime) {//如果超过了指定的时间，还是没有接收到数据，那么就停止搜索
                     handler.sendEmptyMessage(WHAT_UDPTHREAD_CLOSE);
                 }
-                int n = selector.select(100);
-                if (n > 0) {
-                    Set<SelectionKey> keys = selector.selectedKeys();
-                    for (SelectionKey key : keys) {
-                        keys.remove(key);
-                        if (key.isReadable()) {
-                            DatagramChannel dc = (DatagramChannel) key.channel();
-                            dc.configureBlocking(false);
-                            //将postion  limit  make等复位（不会真的清除缓存，这里采用覆盖策略）
-                            receiveBuffer.clear();
-                            //清除缓存（由于clear方法不会真的清除缓存，所以这里采用覆盖策略）
-                            receiveBuffer.put(clearBuf);
-                            //切换到读状态
-                            receiveBuffer.flip();
-                            InetSocketAddress client = (InetSocketAddress) dc.receive(receiveBuffer);
-                            key.interestOps(SelectionKey.OP_READ);
-                            receiveBuffer.flip();
-                            result = new UDPResult();
-                            result.setIp(client.getAddress().getHostAddress());
-                            result.setResultData(receiveBuffer.array());
-                            Message msg = handler.obtainMessage();
-                            msg.obj = result;
-                            msg.what = WHAT_UDPTHREAD_GET_RESULT;
-                            handler.sendMessage(msg);
-                            receiveBuffer.clear();
+                if (selector != null) {
+                    int n = selector.select(100);
+                    if (n > 0) {
+                        Set<SelectionKey> keys = selector.selectedKeys();
+                        for (SelectionKey key : keys) {
+                            keys.remove(key);
+                            if (key.isReadable()) {
+                                DatagramChannel dc = (DatagramChannel) key.channel();
+                                dc.configureBlocking(false);
+                                //将postion  limit  make等复位（不会真的清除缓存，这里采用覆盖策略）
+                                receiveBuffer.clear();
+                                //清除缓存（由于clear方法不会真的清除缓存，所以这里采用覆盖策略）
+                                receiveBuffer.put(clearBuf);
+                                //切换到读状态
+                                receiveBuffer.flip();
+                                InetSocketAddress client = (InetSocketAddress) dc.receive(receiveBuffer);
+                                key.interestOps(SelectionKey.OP_READ);
+                                receiveBuffer.flip();
+                                result = new UDPResult();
+                                result.setIp(client.getAddress().getHostAddress());
+                                result.setResultData(receiveBuffer.array());
+                                Message msg = handler.obtainMessage();
+                                msg.obj = result;
+                                msg.what = WHAT_UDPTHREAD_GET_RESULT;
+                                handler.sendMessage(msg);
+                                receiveBuffer.clear();
+                            }
                         }
                     }
-
+                } else {
+                    selector = Selector.open();
                 }
             }
         } catch (IOException e) {
