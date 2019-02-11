@@ -1,4 +1,7 @@
 apply plugin: 'com.android.library'
+apply plugin: 'com.github.dcendents.android-maven'
+group='com.github.fangxiaole'
+
 android {
     compileSdkVersion 22
     buildToolsVersion '26.0.2'
@@ -27,21 +30,50 @@ dependencies {
     })
     testCompile 'junit:junit:4.12'
 }
-/** 以下开始是将Android Library上传到jcenter的相关配置**/
-apply plugin: 'com.novoda.bintray-release'//添加
-//项目主页
-def siteUrl = 'https://github.com/huangdali/udpsender'
-publish{
-    repoName = 'jwkj'//远程仓库名字,不指明，默认是上传到maven
-    userOrg = 'huangdali'//bintray.com的用户名
-    groupId = 'com.jwkj'//jcenter上的路径
-    artifactId = 'udpsender'//项目名称
-    publishVersion = 'v2.0.1'//版本号
-    desc = 'udp广播发送器'//描述，不重要
-    website = siteUrl//项目主页
+///** 以下开始是将Android Library上传到jcenter的相关配置**/
+//apply plugin: 'com.novoda.bintray-release'//添加
+////项目主页
+//def siteUrl = 'https://github.com/huangdali/udpsender'
+//publish{
+//    repoName = 'jwkj'//远程仓库名字,不指明，默认是上传到maven
+//    userOrg = 'huangdali'//bintray.com的用户名
+//    groupId = 'com.jwkj'//jcenter上的路径
+//    artifactId = 'udpsender'//项目名称
+//    publishVersion = 'v2.0.1'//版本号
+//    desc = 'udp广播发送器'//描述，不重要
+//    website = siteUrl//项目主页
+//}
+//tasks.withType(Javadoc) {//防止编码问题
+//    options.addStringOption('Xdoclint:none', '-quiet')
+//    options.addStringOption('encoding', 'UTF-8')
+//    options.addStringOption('charSet', 'UTF-8')
+//}
+
+// 指定编码
+tasks.withType(JavaCompile) {
+    options.encoding = "UTF-8"
 }
-tasks.withType(Javadoc) {//防止编码问题
-    options.addStringOption('Xdoclint:none', '-quiet')
-    options.addStringOption('encoding', 'UTF-8')
-    options.addStringOption('charSet', 'UTF-8')
+
+// 打包源码
+task sourcesJar(type: Jar) {
+    from android.sourceSets.main.java.srcDirs
+    classifier = 'sources'
+}
+
+task javadoc(type: Javadoc) {
+    failOnError  false
+    source = android.sourceSets.main.java.sourceFiles
+    classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
+    classpath += configurations.compile
+}
+
+// 制作文档(Javadoc)
+task javadocJar(type: Jar, dependsOn: javadoc) {
+    classifier = 'javadoc'
+    from javadoc.destinationDir
+}
+
+artifacts {
+    archives sourcesJar
+    archives javadocJar
 }
